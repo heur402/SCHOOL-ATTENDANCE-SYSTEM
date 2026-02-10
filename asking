@@ -1,0 +1,389 @@
+what if i want to change my project from using two tables and use one table that save even type if it is worker or student and how to edit the table
+<?php
+include("../config/db.php");
+
+if (isset($_GET['class'])) {
+    $class = mysqli_real_escape_string($conn, $_GET['class']);
+
+    $res = mysqli_query($conn, "SELECT student_id, name FROM students WHERE class = '$class' ORDER BY name ASC");
+
+    $students = [];
+    while ($row = mysqli_fetch_assoc($res)) {
+        $students[] = $row;
+    }
+
+    echo json_encode($students);
+}
+?>
+<?php
+include("../config/db.php");
+
+$query = mysqli_query($conn,
+    "SELECT teacher_id as id, name FROM teachers");
+
+$data = [];
+
+while ($row = mysqli_fetch_assoc($query)) {
+    $data[] = $row;
+}
+
+echo json_encode($data);
+?>
+<?php
+include("../config/db.php");
+include("../layout/header.php");
+?>
+<link rel="stylesheet" href="../style.css">
+
+<div class="container">
+    <h2>Mark School Attendance</h2>
+
+    <form method="POST" action="save_attendance.php">
+
+        <!-- Select Attendance Type -->
+        <label>Select Attendance For:</label>
+        <select name="user_type" id="user_type" onchange="handleUserType()" required>
+            <option value="">-- Select Type --</option>
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+        </select>
+
+        <!-- Class (Only for Students) -->
+        <div id="classDiv" style="display:none;">
+            <label>Select Class:</label>
+            <select name="class" id="class" onchange="loadUsers()">
+                <option value="">--Select Class--</option>
+                <?php
+                $classes = mysqli_query($conn, "SELECT DISTINCT class FROM students ORDER BY class ASC");
+                while ($c = mysqli_fetch_assoc($classes)) {
+                    echo "<option value='{$c['class']}'>{$c['class']}</option>";
+                }
+                ?>
+            </select>
+        </div>
+
+        <!-- Student or Teacher Select -->
+        <label>Select Student / Teacher:</label>
+        <select name="user_id" id="user_id" required>
+            <option value="">-- Select User --</option>
+        </select>
+
+        <input type="date" name="date" required>
+
+        <select name="status" required>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+        </select>
+
+        <button type="submit">Save Attendance</button>
+    </form>
+</div>
+<script>
+
+function handleUserType() {
+    const type = document.getElementById('user_type').value;
+    const classDiv = document.getElementById('classDiv');
+
+    document.getElementById('user_id').innerHTML =
+        '<option value="">-- Select User --</option>';
+
+    if (type === "student") {
+        classDiv.style.display = "block";
+    } else {
+        classDiv.style.display = "none";
+        loadUsers(); // Load teachers directly
+    }
+}
+
+function loadUsers() {
+    const type = document.getElementById('user_type').value;
+    const className = document.getElementById('class').value;
+    const userSelect = document.getElementById('user_id');
+
+    userSelect.innerHTML = '<option value="">Loading...</option>';
+
+    let url = "";
+
+    if (type === "student") {
+        if (!className) return;
+        url = "get_students.php?class=" + className;
+    } else if (type === "teacher") {
+        url = "get_teachers.php";
+    }
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            userSelect.innerHTML = '<option value="">-- Select --</option>';
+            data.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.text = user.name;
+                userSelect.add(option);
+            });
+        });
+}
+
+</script>
+<?php
+include("../config/db.php");
+
+$type = $_POST['user_type'];
+$user_id = $_POST['user_id'];
+$class = $_POST['class'] ?? NULL;
+$date = $_POST['date'];
+$status = $_POST['status'];
+
+mysqli_query($conn, "
+INSERT INTO attendance(user_type,user_id,class,date,status)
+VALUES('$type','$user_id','$class','$date','$status')
+");
+
+header("Location: mark_attendance.php?success=1");
+?>
+<?php include("../config/db.php"); ?>
+<?php include("../layout/header.php"); ?>
+<link rel="stylesheet" href="../style.css">
+
+<div class="container">
+<h2>Attendance Records</h2>
+
+<table>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Class</th>
+<th>Date</th>
+<th>Status</th>
+</tr>
+
+<?php
+$sql = "
+SELECT 
+    attendance.*,
+    students.student_id,
+    students.name AS student_name,
+    teachers.teacher_id,
+    teachers.name AS teacher_name
+FROM attendance
+
+LEFT JOIN students 
+    ON attendance.user_id = students.student_id
+
+LEFT JOIN teachers 
+    ON attendance.user_id = teachers.teacher_id
+
+ORDER BY attendance.date DESC
+";
+
+$res = mysqli_query($conn, $sql);
+
+while($row = mysqli_fetch_assoc($res)){
+?>
+<tr>
+<td>
+<?=
+$row['student_name'] ??
+$row['teacher_name'] ??
+'Unknown'
+?>
+</td>
+<td><?= ucfirst($row['user_type']) ?></td>
+<td><?= $row['class'] ?? '-' ?></td>
+<td><?= $row['date'] ?></td>
+<td><?= ucfirst($row['status']) ?></td>
+</tr>
+<?php } ?>
+</table>
+</div>
+<?php
+$conn = mysqli_connect("localhost", "root", "", "attendance_db");
+
+if(!$conn){
+    die("Connection failed: " . mysqli_connect_error());
+}
+?>
+<?php include("../layout/header.php"); ?>
+<?php include("../config/db.php"); ?>
+
+<div class="container">
+<h2>Add Student or Teacher</h2>
+
+<form method="POST">
+
+<!-- Select Type -->
+<label>Select Type</label>
+<select name="user_type" id="user_type" onchange="toggleFields()" required>
+    <option value="">-- Select --</option>
+    <option value="student">Student</option>
+    <option value="teacher">Teacher</option>
+</select>
+
+<input type="text" name="name" placeholder="Full Name" required>
+<input type="email" name="email" placeholder="Email" required>
+
+<!-- Student Field -->
+<div id="classField">
+    <input type="text" name="class" placeholder="Class">
+</div>
+
+<!-- Teacher Field -->
+<div id="subjectField" style="display:none;">
+    <input type="text" name="subject" placeholder="Subject">
+</div>
+
+<button name="save">Save</button>
+</form>
+</div>
+<script>
+function toggleFields(){
+    const type = document.getElementById("user_type").value;
+
+    if(type === "student"){
+        document.getElementById("classField").style.display = "block";
+        document.getElementById("subjectField").style.display = "none";
+    }else if(type === "teacher"){
+        document.getElementById("classField").style.display = "none";
+        document.getElementById("subjectField").style.display = "block";
+    }
+}
+</script>
+<?php
+if(isset($_POST['save'])){
+
+    $type = $_POST['user_type'];
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+
+    if($type == "student"){
+
+        $class = $_POST['class'];
+
+        mysqli_query($conn,"INSERT INTO students(name,email,class)
+                            VALUES('$name','$email','$class')");
+
+        echo "Student Added Successfully!";
+
+    } else if($type == "teacher"){
+
+        $subject = $_POST['subject'];
+
+        mysqli_query($conn,"INSERT INTO teachers(name,email,subject)
+                            VALUES('$name','$email','$subject')");
+
+        echo "Teacher Added Successfully!";
+    }
+}
+?>
+<?php
+include("../config/db.php");
+
+$id = $_GET['id'];
+
+
+mysqli_query($conn, "DELETE FROM attendance WHERE student_id = $id");
+
+
+mysqli_query($conn, "DELETE FROM students WHERE student_id = $id");
+
+
+if(isset($_SERVER['HTTP_REFERER'])) {
+    header("Location: " . $_SERVER['HTTP_REFERER']);
+    exit();
+} else {
+    
+    header("Location: ../students.php");
+    exit();
+}
+?>
+<?php
+include("../config/db.php"); 
+
+
+$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+if ($id <= 0) {
+    die("Invalid student ID.");
+}
+
+
+$stmt = $conn->prepare("SELECT * FROM students WHERE student_id = ?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+
+if (!$row) {
+    die("Student not found.");
+}
+
+if (isset($_POST['update'])) {
+    $name = $_POST['name'];
+    $email = $_POST['email'];
+    $class = $_POST['class'];
+
+
+    $stmt = $conn->prepare("UPDATE students SET name=?, email=?, class=? WHERE student_id=?");
+    $stmt->bind_param("sssi", $name, $email, $class, $id);
+    $stmt->execute();
+
+
+    header("Location: ../students/view_students.php?msg=updated");
+    exit();
+}
+?>
+
+<?php include("../layout/header.php"); ?>
+
+<div class="container">
+    <h2>Update Student</h2>
+
+    <form method="POST">
+        <label>Name:</label>
+        <input type="text" name="name" value="<?php echo htmlspecialchars($row['name']); ?>" required>
+
+        <label>Email:</label>
+        <input type="email" name="email" value="<?php echo htmlspecialchars($row['email']); ?>" required>
+
+        <label>Class:</label>
+        <input type="text" name="class" value="<?php echo htmlspecialchars($row['class']); ?>" required>
+
+        <br><br>
+        <button type="submit" name="update">Update</button>
+    </form>
+</div>
+
+<?php include("../layout/footer.php"); ?>
+<?php
+include("../config/db.php");
+include("../layout/header.php");
+?>
+<link rel="stylesheet" href="../style.css">
+
+<div class="container">
+    <h2>Students List</h2>
+
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Class</th>
+            <th>Action</th>
+        </tr>
+
+        <?php
+        
+        $result = mysqli_query($conn, "SELECT * FROM students ORDER BY class ASC, name ASC");
+        while ($row = mysqli_fetch_assoc($result)) {
+        ?>
+        <tr>    
+            <td><?= htmlspecialchars($row['name']) ?></td>
+            <td><?= htmlspecialchars($row['email']) ?></td>
+            <td><?= htmlspecialchars($row['class']) ?></td>
+            <td>
+                <a class="action-btn edit" href="edit_student.php?id=<?= $row['student_id'] ?>">Edit</a>
+                <a class="action-btn delete" href="delete_student.php?id=<?= $row['student_id'] ?>">Delete</a>
+            </td>
+        </tr>
+        <?php } ?>
+    </table>
+</div>
