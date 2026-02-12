@@ -28,4 +28,5 @@
         <a href="/attendance-system/students/view_users.php">View</a>
         <a href="/attendance-system/attendance/mark_attendance.php">Mark Attendance</a>
         <a href="/attendance-system/attendance/view_attendance.php">View Attendance</a>
+        <a href="../attendance/report.php">View Report</a>
     </nav>
