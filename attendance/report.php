@@ -29,107 +29,104 @@ $absentRes = mysqli_query($conn, $absentSql);
 ?>
 
 <style>
-.container{
-    padding:20px;
-    font-family: Arial, sans-serif;
-}
-
-/* Two Column Layout */
-.report-row{
-    display:flex;
-    gap:40px;
-    align-items:flex-start;
-}
-
-.report-col{
-    flex:1;
-}
-
-/* Normal List Look */
-ul{
-    margin-left:20px;
-}
-
-li{
-    margin-bottom:6px;
-}
-
-/* Titles */
-.present{
-    color:green;
-}
-
-.absent{
-    color:red;
-}
-
-/* Mobile Responsive */
-@media(max-width:768px){
-    .report-row{
-        flex-direction:column;
+    .container {
+        padding: 20px;
+        font-family: Arial, sans-serif;
     }
-}
+
+    /* Two Column Layout */
+    .report-row {
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+    }
+
+    .report-col {
+        flex: 1;
+    }
+
+    /* Normal List Look */
+    Ol {
+        margin-left: 20px;
+    }
+
+    li {
+        margin-bottom: 6px;
+    }
+
+    /* Titles */
+    .present {
+        color: green;
+    }
+
+    .absent {
+        color: red;
+    }
+
+    /* Mobile Responsive */
+    @media(max-width:768px) {
+        .report-row {
+            flex-direction: column;
+        }
+    }
 </style>
 
 <div class="container">
 
-<h2>Attendance Report</h2>
+    <h2>Attendance Report</h2>
 
-<div class="report-row">
+    <div class="report-row">
 
-<!-- ================= LEFT SIDE : PRESENT ================= -->
-<div class="report-col">
+        <!-- ================= LEFT SIDE : PRESENT ================= -->
+        <div class="report-col">
 
-<h3 class="present">Present Students</h3>
+            <h3 class="present">Present</h3>
 
-<ul>
-<?php
-if(mysqli_num_rows($presentRes) > 0){
-    while($row = mysqli_fetch_assoc($presentRes)){
-?>
-<li>
-<strong><?= htmlspecialchars($row['user_name'] ?? 'Unknown') ?></strong>
- - <?= ucfirst($row['user_type']) ?>
- - Class: <?= $row['class'] ?? '-' ?>
- - Date: <?= $row['date'] ?>
-</li>
-<?php
-    }
-}else{
-    echo "<li>No Present Records</li>";
-}
-?>
-</ul>
+            <ol>
+                <?php
+                if (mysqli_num_rows($presentRes) > 0) {
+                    while ($row = mysqli_fetch_assoc($presentRes)) {
+                ?>
+                        <li>
+                            <strong><?= htmlspecialchars($row['user_name'] ?? 'Unknown') ?></strong>
+                            - <?= ucfirst($row['user_type']) ?>
+                        </li>
+                <?php
+                    }
+                } else {
+                    echo "<li>No Present Records</li>";
+                }
+                ?>
+            </ol>
 
-</div>
+        </div>
 
 
-<!-- ================= RIGHT SIDE : ABSENT ================= -->
-<div class="report-col">
+        <!-- ================= RIGHT SIDE : ABSENT ================= -->
+        <div class="report-col">
 
-<h3 class="absent">Absent Students</h3>
+            <h3 class="absent">Absent</h3>
 
-<ul>
-<?php
-if(mysqli_num_rows($absentRes) > 0){
-    while($row = mysqli_fetch_assoc($absentRes)){
-?>
-<li>
-<strong><?= htmlspecialchars($row['user_name'] ?? 'Unknown') ?></strong>
- - <?= ucfirst($row['user_type']) ?>
- - Class: <?= $row['class'] ?? '-' ?>
- - Date: <?= $row['date'] ?>
-</li>
-<?php
-    }
-}else{
-    echo "<li>No Absent Records</li>";
-}
-?>
-</ul>
+            <ol>
+                <?php
+                if (mysqli_num_rows($absentRes) > 0) {
+                    while ($row = mysqli_fetch_assoc($absentRes)) {
+                ?>
+                        <li>
+                            <strong><?= htmlspecialchars($row['user_name'] ?? 'Unknown') ?></strong>
+                            - <?= ucfirst($row['user_type']) ?>
 
-</div>
+                        </li>
+                <?php
+                    }
+                } else {
+                    echo "<li>No Absent Records</li>";
+                }
+                ?>
+            </ol>
 
-</div>
+        </div>
+
+    </div>
 
 </div>
